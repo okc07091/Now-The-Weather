@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    android:orientation="horizontal"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="kr.hs.buil.neighborhoodweather.MainActivity">
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="3"
+        android:orientation="vertical">
+        <LinearLayout
+            android:paddingTop="20dp"
+            android:id="@+id/layoutBackground"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="0dp">
+            <TextView
+                style="@style/TextBorder"
+                android:id="@+id/tvLocation"
+                android:text="NULL"
+                android:gravity="center"
+                android:textSize="35dp"
+                android:textColor="#000000"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+            <TextView
+                style="@style/TextBorder"
+                android:id="@+id/tvSky"
+                android:gravity="center"
+                android:text="NULL"
+                android:textColor="#000000"
+                android:textSize="20dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+            <TextView
+                style="@style/TextBorder"
+                android:id="@+id/tvTemperNow"
+                android:gravity="center"
+                android:text="NULL"
+                android:textSize="30dp"
+                android:textColor="#000000"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+            <LinearLayout
+                android:id="@+id/layoutTemperature"
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <TextView
+                    style="@style/TextBorder"
+                    android:layout_weight="1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+                <TextView
+                    style="@style/TextBorder"
+                    android:gravity="right"
+                    android:textColor="#000000"
+                    android:text="최저기온 : "
+                    android:layout_weight="1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+                <TextView
+                    style="@style/TextBorder"
+                    android:textColor="#000000"
+                    android:text="NULL"
+                    android:id="@+id/tvTemperMin"
+                    android:layout_weight="1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+                <TextView
+                    style="@style/TextBorder"
+                    android:textColor="#000000"
+                    android:gravity="right"
+                    android:text="최고기온 : "
+                    android:layout_weight="1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+                <TextView
+                    style="@style/TextBorder"
+                    android:textColor="#000000"
+                    android:text="NULL"
+                    android:id="@+id/tvTemperMax"
+                    android:layout_weight="1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+                <TextView
+                    style="@style/TextBorder"
+                    android:layout_weight="1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rvForecast"
+            android:layout_weight="1"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            app:layoutManager="LinearLayoutManager" />
+
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="#88555555">
+
+        <Button
+            android:id="@+id/btnAddCity"
+            android:text="지역 추가"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <ListView
+            android:id="@+id/lvCity"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+    </LinearLayout>
+
+</LinearLayout>
