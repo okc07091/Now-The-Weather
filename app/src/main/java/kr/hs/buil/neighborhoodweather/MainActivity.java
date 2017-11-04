@@ -1,15 +1,23 @@
 package kr.hs.buil.neighborhoodweather;
 
 import android.Manifest;
+import android.app.AlarmManager;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.media.Image;
+import android.os.Build;
 import android.os.Handler;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
@@ -22,9 +30,11 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -79,6 +89,13 @@ public class MainActivity extends AppCompatActivity {
     RecyclerView rvForecast;
     @BindView(R.id.lvCity)
     ListView lvCity;
+    @BindView(R.id.btnAlarm)
+    ImageView btnAlarm;
+
+    ForecastAdapter mForecastAdapter;
+
+    AlarmManager mAlarmManager;
+    long mAlarmTriggerTime = 0;
 
     boolean isExiting = false;
 
@@ -90,6 +107,13 @@ public class MainActivity extends AppCompatActivity {
 
         APIService = WeatherService.retrofit.create(WeatherService.class);
 
+        SharedPreferences sharedPref = getSharedPreferences("com.kimjunu.neighborhoodweather", Context.MODE_PRIVATE);
+        mAlarmTriggerTime = sharedPref.getLong("alarm_trigger_time", 0);
+
+        if (mAlarmTriggerTime == 0)
+            btnAlarm.setImageResource(R.drawable.ic_add_alarm_black_24dp);
+        else
+            btnAlarm.setImageResource(R.drawable.ic_alarm_on_black_24dp);
 
         boolean isGranted = checkLocationPermission();
 
@@ -330,6 +354,35 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         rootView.setBackgroundResource(R.mipmap.bg_lightening);
                     }
+
+                    Intent intent = new Intent(MainActivity.this, AlarmReceiver.class);
+                    intent.putExtra("isRepeat",true);
+                    PendingIntent pendingIntent = PendingIntent.getBroadcast(MainActivity.this, 0,
+                            intent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+                    if (mAlarmManager == null)
+                        mAlarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+                    mAlarmManager.setRepeating(AlarmManager.RTC_WAKEUP,AlarmManager.INTERVAL_HOUR, AlarmManager.INTERVAL_HOUR,
+                            pendingIntent);
+
+                    NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                    PendingIntent pIntent = PendingIntent.getActivity(MainActivity.this, 0,
+                            new Intent(MainActivity.this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
+
+                    Notification.Builder builder = new Notification.Builder(MainActivity.this);
+                    builder.setSmallIcon(R.mipmap.neighborhood_weather_icon)
+                            .setContentTitle(currentCity)
+                            .setContentText(hourly.sky.name + ", " + temp)
+                            .setWhen(System.currentTimeMillis())
+                            .setContentIntent(pIntent);
+
+                    builder.setPriority(Notification.PRIORITY_MAX);
+
+                    Notification noti = builder.build();
+                    noti.flags |= Notification.FLAG_NO_CLEAR;
+
+                    manager.notify(1000, noti);
                 }
             }
         }
@@ -436,5 +489,82 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
 
         return true;
+    }
+    @OnClick(R.id.btnAlarm)
+    public void showSetAlarmDialog() {
+        Calendar time = Calendar.getInstance();
+
+        if (mAlarmTriggerTime == 0)
+            time.setTimeInMillis(System.currentTimeMillis());
+        else
+            time.setTimeInMillis(mAlarmTriggerTime);
+
+        int hour = time.get(Calendar.HOUR_OF_DAY);
+        int minute = time.get(Calendar.MINUTE);
+
+        TimePickerDialog dialog = new TimePickerDialog(MainActivity.this, new TimePickerDialog.OnTimeSetListener() {
+            @Override
+            public void onTimeSet(TimePicker timePicker, int i, int i1) {
+                cancelAlarm();
+
+                Intent intent = new Intent(MainActivity.this, AlarmReceiver.class);
+                PendingIntent pIntent = PendingIntent.getBroadcast(MainActivity.this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+                long atime = System.currentTimeMillis();
+
+                Calendar curTime = Calendar.getInstance();
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    curTime.set(Calendar.HOUR_OF_DAY, timePicker.getHour());
+                    curTime.set(Calendar.MINUTE, timePicker.getMinute());
+                } else {
+                    curTime.set(Calendar.HOUR_OF_DAY, timePicker.getCurrentHour());
+                    curTime.set(Calendar.MINUTE, timePicker.getCurrentMinute());
+                }
+                curTime.set(Calendar.SECOND, 0);
+                curTime.set(Calendar.MILLISECOND, 0);
+
+                long btime = curTime.getTimeInMillis();
+                mAlarmTriggerTime = btime;
+
+                if (atime > btime)
+                    mAlarmTriggerTime += 1000 * 60 * 60 * 24;
+
+                mAlarmManager.setRepeating(AlarmManager.RTC_WAKEUP, mAlarmTriggerTime, AlarmManager.INTERVAL_DAY, pIntent);
+
+                btnAlarm.setImageResource(R.drawable.ic_alarm_on_black_24dp);
+
+                SharedPreferences sharedPref = getSharedPreferences("com.kimjunu.neighborhoodweather", Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = sharedPref.edit();
+                editor.putLong("alarm_trigger_time", mAlarmTriggerTime);
+                editor.commit();
+            }
+        }, hour, minute, false);
+        dialog.updateTime(hour, minute);
+        dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "해제", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                cancelAlarm();
+
+                mAlarmTriggerTime = 0;
+
+                btnAlarm.setImageResource(R.drawable.ic_add_alarm_black_24dp);
+
+                SharedPreferences sharedPref = getSharedPreferences("com.kimjunu.neighborhoodweather", Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = sharedPref.edit();
+                editor.putLong("alarm_trigger_time", mAlarmTriggerTime);
+                editor.commit();
+            }
+        });
+        dialog.setButton(DialogInterface.BUTTON_POSITIVE, "알람 설정", dialog);
+
+        dialog.show();
+    }
+
+    public void cancelAlarm() {
+        Intent intent = new Intent(MainActivity.this, AlarmReceiver.class);
+        PendingIntent pIntent = PendingIntent.getBroadcast(MainActivity.this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        mAlarmManager.cancel(pIntent);
     }
 }
